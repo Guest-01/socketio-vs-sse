@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>SSE</title>
+  <style>
+    .container {
+      display: flex;
+      max-width: 400px;
+      padding: 10px;
+    }
+
+    .card {
+      border: 1px solid grey;
+      border-radius: 10px;
+      padding: 10px;
+      width: 100%;
+    }
+
+    .title {
+      font-size: large;
+      font-weight: bold;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+
+    <section class="card">
+      <div class="card-header">
+        <span class="title">SSE</span>
+        <div>
+          <span id="sse-status">연결 전</span>
+          <button onclick="connectSocket()">연결</button>
+          <button onclick="disconnectSocket()">끊기</button>
+        </div>
+      </div>
+      <canvas id="sse-chart"></canvas>
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    const sseChart = new Chart(document.getElementById('sse-chart'), {
+      type: 'bar',
+      data: {
+        labels: ['CPU', 'MEM', 'DISK'],
+        datasets: [{
+          label: '현재 사용량(%)',
+          data: [0, 0, 0],
+          borderWidth: 1,
+          backgroundColor: 'rgba(120, 220, 50, 0.65)'
+        }]
+      },
+      options: { scales: { y: { min: 0, max: 100 } } }
+    });
+
+    let evtSource;
+    function connectSocket() {
+      if (evtSource) return;
+      evtSource = new EventSource("/sse/cpumemdisk");
+      evtSource.addEventListener("message", ({ data }) => {
+        sseChart.data.datasets.at(0).data = [...JSON.parse(data).data];
+        sseChart.update();
+      })
+      document.getElementById("sse-status").textContent = "연결 됨";
+    }
+
+    function disconnectSocket() {
+      evtSource?.close();
+      evtSource = null;
+      document.getElementById("sse-status").textContent = "연결 해제";
+    }
+  </script>
+</body>
+
+</html>
